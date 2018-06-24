@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Net;
+using System.Net.Sockets;
+using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Threading;
 using static PScan.Types;
 
 namespace PScan {
@@ -160,7 +164,7 @@ namespace PScan {
 
         public static bool VerifyPortRange(string Range) {
             try {
-                if (Range.Contains("-") == true) {
+                if (Range.Contains("-")) {
                     int DashLocation = Range.IndexOf("-");
                     int BeginPort = int.Parse(Range.Substring(0, DashLocation));
                     int EndPort = int.Parse(Range.Substring(DashLocation + 1, Range.Length - DashLocation - 1));
@@ -185,7 +189,7 @@ namespace PScan {
         /// <returns></returns>
         public static List<int> GetPorts(string Range) {
             List<int> ListToReturn = new List<int>();
-            if (Range.Contains("-") == true) {
+            if (Range.Contains("-")) {
                 int DashLocation = Range.IndexOf("-");
                 int BeginPort = int.Parse(Range.Substring(0, DashLocation));
                 int EndPort = int.Parse(Range.Substring(DashLocation + 1, Range.Length - DashLocation - 1));
@@ -217,6 +221,51 @@ namespace PScan {
             }
         }
 
+        public static async Task<bool> DetectICMP(IPAddress IP) {
+            try {
+                Ping Pinger = new Ping();
+                await Pinger.SendPingAsync(IP);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        public static void StartTCP(IPAddress IP, int Port) {
+            Thread PortThr = new Thread(() => DetectTCP(IP, Port));
+            PortThr.SetApartmentState(ApartmentState.MTA);
+            GC.Collect();
+            try {
+                PortThr.Start();
+            } catch (OutOfMemoryException) {
+                Output("Insufficient memory! Will wait for 3 seconds and continue.", LogLevel.WARN);
+                Thread.Sleep(3000);
+                StartTCP(IP, Port);
+            }
+        }
+
+        public static bool DetectTCP(IPAddress IP, int Port) {
+            try {
+                var Sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                var EndPoint = new IPEndPoint(IP, Port);
+                Sock.Blocking = true;
+                IAsyncResult Result = Sock.BeginConnect(IP, Port, null, null);
+                bool Success = Result.AsyncWaitHandle.WaitOne(5000, true);
+                if (Sock.Connected) {
+                    Sock.EndConnect(Result);
+                    Sock.Dispose();
+                    Output("[OPEN] " + IP.ToString() + ":" + Port + " - TCPConnect");
+                    return true;
+                } else {
+                    Sock.Dispose();
+                    throw (new TimeoutException("Request timed out (5000 milliseconds)."));
+                }
+            } catch {
+                // Output("[CLOSED] " + IP.ToString() + ":" + Port + " - TCP");
+                return false;
+            }
+        }
+
         // ========== !!!!!!!!!! ==========
         // The following stuff belong to
         // Setup, do not add things that
@@ -232,21 +281,6 @@ namespace PScan {
             AddPortRanges();
             Output("==> Do you need to check ICMP packages' transmission? [y/N]");
             Consts.TestICMP = GetBoolByYN(GetInput(), false);
-            Output("==> Do you need to detect HTTP protocol? [y/N]");
-            Consts.TestHTTP = GetBoolByYN(GetInput(), false);
-            Output("==> Do you need to detect HTTPS protocol? [y/N]");
-            Consts.TestHTTPS = GetBoolByYN(GetInput(), false);
-            Output("==> Do you need to detect FTP protocol? [y/N]");
-            Consts.TestFTP = GetBoolByYN(GetInput(), false);
-            if (Consts.TestFTP == true) {
-                Output("==> Please specify FTP username. [Anonymous]");
-                string Username = GetInput();
-                if (Username != null) {
-                    Consts.FTPUser = Username;
-                }
-                Output("==> Please specify FTP password. [(none)]");
-                Consts.FTPKey = GetInput();
-            }
         }
 
         private static void AddIPRanges() {

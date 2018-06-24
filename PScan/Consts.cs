@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Collections.Generic;
 using System.IO;
@@ -15,11 +16,8 @@ namespace PScan {
 
         // function switches
         public static bool TestICMP {get; set;} = false;
-        public static bool TestHTTP {get; set;} = false;
-        public static bool TestHTTPS {get; set;} = false;
-        public static bool TestFTP {get; set;} = false;
-        // ftp detection
-        public static string FTPUser {get; set;} = "Anonymous";
-        public static string FTPKey {get; set;} = null;
+
+        // timer
+        public static Stopwatch Timer {get;} = new Stopwatch();
     }
 }
