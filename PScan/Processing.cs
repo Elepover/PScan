@@ -250,16 +250,17 @@ namespace PScan {
                 var EndPoint = new IPEndPoint(IP, Port);
                 Sock.Blocking = true;
                 IAsyncResult Result = Sock.BeginConnect(IP, Port, null, null);
-                bool Success = Result.AsyncWaitHandle.WaitOne(5000, true);
-                if (Sock.Connected) {
-                    Sock.EndConnect(Result);
-                    Sock.Dispose();
-                    Output("[OPEN] " + IP.ToString() + ":" + Port + " - TCPConnect");
-                    return true;
-                } else {
-                    Sock.Dispose();
-                    throw (new TimeoutException("Request timed out (5000 milliseconds)."));
+                for (int i = 0; i <= 5000; i += 100) {
+                    bool Success = Result.AsyncWaitHandle.WaitOne(100, true);
+                    if (Sock.Connected) {
+                        Sock.EndConnect(Result);
+                        Sock.Dispose();
+                        Output("[OPEN] " + IP.ToString() + ":" + Port + " - TCPConnect");
+                        return true;
+                    }
                 }
+                Sock.Dispose();
+                throw (new TimeoutException("Request timed out (5000 milliseconds)."));
             } catch {
                 // Output("[CLOSED] " + IP.ToString() + ":" + Port + " - TCP");
                 return false;
