@@ -259,10 +259,8 @@ namespace PScan {
                         return true;
                     }
                 }
-                if (Sock.Connected == false) {
-                    Sock.Dispose();
-                    throw (new TimeoutException("Request timed out (5000 milliseconds)."));
-                }
+                Sock.Dispose();
+                throw (new TimeoutException("Request timed out (5000 milliseconds)."));
             } catch {
                 // Output("[CLOSED] " + IP.ToString() + ":" + Port + " - TCP");
                 return false;
