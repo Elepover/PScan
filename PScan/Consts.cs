@@ -6,7 +6,7 @@ using System.IO;
 
 namespace PScan {
     class Consts {
-        public readonly static Version AppVer = new Version("1.0.0.0");
+        public readonly static Version AppVer = new Version("1.0.1.0");
         public readonly static string AppExecutable = Assembly.GetExecutingAssembly().Location;
         public readonly static string AppDirectory = (new FileInfo(AppExecutable)).DirectoryName;
 
