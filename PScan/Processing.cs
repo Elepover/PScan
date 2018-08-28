@@ -233,7 +233,6 @@ namespace PScan {
 
         public static void StartTCP(IPAddress IP, int Port) {
             Thread PortThr = new Thread(() => DetectTCP(IP, Port));
-            PortThr.SetApartmentState(ApartmentState.MTA);
             GC.Collect();
             try {
                 PortThr.Start();
